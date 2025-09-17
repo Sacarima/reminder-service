@@ -1,10 +1,10 @@
-# 📅 Reminder Service
+#  Reminder Service
 
 A **NestJS microservice** (API + Worker) that powers **timezone-aware appointment reminders** for the MediPulso platform. When a patient books an appointment, the service schedules reminders and delivers them via **Email/SMS** (24h and 2h before the visit) using a resilient job queue.
 
 ---
 
-## ✨ Features
+## Features
 
 - **API + Worker separation** – scale independently for clean isolation.
 - **Event-driven** – consumes `appointment.created` and related events from MediPulso.
@@ -18,32 +18,32 @@ A **NestJS microservice** (API + Worker) that powers **timezone-aware appointmen
 
 ---
 
-## 🏗 Architecture
+## Architecture
 
 ## 📂 Project Structure
 
----
-
+```text
 reminder-service/
 │
 ├── apps/
-│ ├── reminder-api/ # API (accepts events, schedules reminders)
-│ └── reminder-worker/ # Worker (processes queue, sends reminders)
+│   ├── reminder-api/     # API (accepts events, schedules reminders)
+│   └── reminder-worker/  # Worker (processes queue, sends reminders)
 │
 ├── prisma/
-│ └── schema.prisma # Postgres schema (appointments, schedules, delivery_log)
+│   └── schema.prisma     # Postgres schema (appointments, schedules, delivery_log)
 │
-├── src/ # Shared libs, DTOs, utils
+├── src/                  # Shared libs, DTOs, utils
 │
-├── docker/ # Dockerfiles and configs
+├── docker/               # Dockerfiles and configs
 │
-├── .env.example # Example environment variables
+├── .env.example          # Example environment variables
 ├── package.json
 └── README.md
 
+
 ---
 
-## 🚀 Tech Stack
+##  Tech Stack
 
 - **Backend**: [NestJS](https://nestjs.com/) + TypeScript
 - **Database**: PostgreSQL + [Prisma](https://www.prisma.io/)
@@ -56,11 +56,11 @@ reminder-service/
 
 ---
 
-## 📂 Project Structure
+##  Project Structure
 
 ---
 
-## 🛠 Development
+##  Development
 
 Start API & Worker locally:
 
@@ -83,7 +83,7 @@ Build & run services:
 
 docker-compose up --build
 
-## 🧪 Testing
+##  Testing
 
 npm run test
 npm run test:e2e
