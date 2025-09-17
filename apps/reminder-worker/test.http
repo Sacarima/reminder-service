@@ -1,0 +1,6 @@
+@metrics = http://localhost:8091
+
+### Prometheus metrics
+GET {{metrics}}/metrics
+Accept: text/plain
+

@@ -1,0 +1,50 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: reminder_postgres
+    environment:
+      POSTGRES_DB: reminder
+      POSTGRES_USER: reminder
+      POSTGRES_PASSWORD: reminder
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: reminder_redis
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  mailhog:
+    image: mailhog/mailhog:v1.0.1
+    container_name: reminder_mailhog
+    ports:
+      - "1025:1025"  # SMTP
+      - "8025:8025"  # UI http://localhost:8025
+
+# (Optional, add later for M6)
+#  prometheus:
+#  grafana:
+
+networks:
+  default:
+    name: reminder-net
+
+volumes:
+  pgdata:
+  redisdata:

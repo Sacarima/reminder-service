@@ -1,0 +1,99 @@
+@baseUrl  = http://localhost:8080
+@token    = changeme-dev-token
+@clinic   = clinic_42
+@email    = a@b.com
+@tz       = Europe/Warsaw
+
+# ↓↓↓ PASTE THE 5 VALUES YOU GENERATED ↓↓↓
+@aptId    = apt_http_abc123
+@startAt  = 2025-09-13T06:41:33.000Z
+@startAt2 = 2025-09-13T06:42:33.000Z
+@aptSoon  = apt_http_fire_def456
+@startSoon= 2025-09-13T06:41:48.000Z
+# ↑↑↑                                     ↑↑↑
+
+### Health - live
+GET {{baseUrl}}/health/live
+
+### Health - ready
+GET {{baseUrl}}/health/ready
+
+### Create appointment (email)
+POST {{baseUrl}}/events
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "type": "appointment.created",
+  "appointmentId": "{{aptId}}",
+  "version": 1,
+  "clinicId": "{{clinic}}",
+  "patient": {
+    "id": "p1",
+    "tz": "{{tz}}",
+    "channelPreference": "email",
+    "email": "{{email}}"
+  },
+  "startAt": "{{startAt}}"
+}
+
+### Upcoming within 48h
+GET {{baseUrl}}/appointments/upcoming?horizonHours=48
+Authorization: Bearer {{token}}
+
+### Update: bump to startAt2 (version 2)
+POST {{baseUrl}}/events
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "type": "appointment.updated",
+  "appointmentId": "{{aptId}}",
+  "version": 2,
+  "clinicId": "{{clinic}}",
+  "patient": {
+    "id": "p1",
+    "tz": "{{tz}}",
+    "channelPreference": "email",
+    "email": "{{email}}"
+  },
+  "startAt": "{{startAt2}}"
+}
+
+### Cancel (version 3)
+POST {{baseUrl}}/events
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "type": "appointment.canceled",
+  "appointmentId": "{{aptId}}",
+  "version": 3,
+  "clinicId": "{{clinic}}",
+  "patient": {
+    "id": "p1",
+    "tz": "{{tz}}",
+    "channelPreference": "email",
+    "email": "{{email}}"
+  },
+  "startAt": "{{startAt2}}"
+}
+
+### Quick-fire: create job that should run soon
+POST {{baseUrl}}/events
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "type": "appointment.created",
+  "appointmentId": "{{aptSoon}}",
+  "version": 1,
+  "clinicId": "{{clinic}}",
+  "patient": {
+    "id": "p1",
+    "tz": "{{tz}}",
+    "channelPreference": "email",
+    "email": "{{email}}"
+  },
+  "startAt": "{{startSoon}}"
+}

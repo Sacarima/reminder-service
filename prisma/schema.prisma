@@ -1,0 +1,143 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/* ---------------- Enums ---------------- */
+
+enum Channel {
+  email
+  sms
+}
+
+enum SlotKind {
+  T_MINUS_24H
+  T_MINUS_2H
+}
+
+enum PlanStatus {
+  scheduled
+  sent
+  canceled
+  expired
+}
+
+enum AttemptStatus {
+  success
+  transient_fail
+  permanent_fail
+}
+
+enum ShadowStatus {
+  active
+  canceled
+  queued
+  success
+  fail
+}
+
+/* --------------- Tables ---------------- */
+
+// Minimal mirror of the appointment used for planning & guards
+model AppointmentShadow {
+  id                 String       @id @default(cuid())
+  appointmentId      String
+  clinicId           String
+  patientId          String
+  patientTz          String
+  channelPreference  Channel
+
+  // Contacts (persist latest known so reconciler can rebuild payloads)
+  patientEmail       String?      @db.Text
+  patientPhoneE164   String?      @db.Text
+
+  startAtUtc         DateTime     @db.Timestamptz(6) // appointment start (absolute)
+  version            Int
+  status             ShadowStatus @default(active)
+
+  createdAt          DateTime     @default(now()) @db.Timestamptz(6)
+  updatedAt          DateTime     @updatedAt      @db.Timestamptz(6)
+
+  @@unique([appointmentId, version], name: "appointmentId_version")
+  @@index([clinicId])
+  @@index([patientId])
+}
+
+// Computed reminder slots (T−24h, T−2h) and their lifecycle
+model SchedulePlan {
+  id               String     @id @default(cuid())
+  appointmentId    String
+  slotKind         SlotKind
+
+  // The instant we actually send at (source of truth)
+  plannedUtc       DateTime   @db.Timestamptz(6)
+
+  // Store the patient's wall-clock time as ISO with offset (audit/UI)
+  plannedLocalISO  String?    @db.Text
+
+  // (Optional) keep this if you already write it; represents the same instant as plannedUtc
+  plannedLocal     DateTime   @db.Timestamptz(6)
+
+  windowRule       String?
+  status           PlanStatus @default(scheduled)
+  jobKey           String     @unique               // reminder:{apt}:{slotKind}:{version}
+
+  createdAt        DateTime   @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime   @updatedAt      @db.Timestamptz(6)
+
+  @@index([appointmentId])
+  @@index([slotKind])
+  @@index([status, plannedUtc]) // speeds up "upcoming" scans
+}
+
+// Optional: Operational snapshot of what we queued (not required for core flow)
+model QueuedJob {
+  id              String    @id @default(cuid())
+  jobKey          String    @unique
+  queue           String
+  runAtUtc        DateTime  @db.Timestamptz(6)
+  priority        Int       @default(0)
+  attempt         Int       @default(0)
+  maxAttempts     Int       @default(6)
+  backoffStrategy String
+  payload         Json
+  createdAt       DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime  @updatedAt      @db.Timestamptz(6)
+
+  @@index([queue])
+}
+
+// Immutable audit of every provider attempt
+model DeliveryLog {
+  id                 String         @id @default(cuid())
+  jobKey             String
+  channel            Channel
+  attempt            Int
+  startedAt          DateTime       @db.Timestamptz(6)
+  finishedAt         DateTime       @db.Timestamptz(6)
+  status             AttemptStatus
+  providerMessageId  String?
+  errorCode          String?
+  errorMessage       String?        @db.Text
+  latencyMs          Int?
+  metadata           Json?
+
+  @@unique([jobKey, attempt])
+  @@index([jobKey])
+}
+
+// Inbound provider signals (delivered/opened/bounced/etc.)
+model ProviderEvent {
+  id         String   @id @default(cuid())
+  jobKey     String
+  eventType  String
+  occurredAt DateTime @db.Timestamptz(6)
+  raw        Json
+
+  @@index([jobKey])
+}
